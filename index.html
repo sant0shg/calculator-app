@@ -1,0 +1,158 @@
+
+<!Doctype html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width">
+<title>Calculator with notes</title>
+<style>
+    .tab-wrapper{
+        display: flex;
+        justify-content: space-evenly;
+        flex-direction: row;
+    }
+    .tab-wrapper .tab{
+        border-bottom: 1px solid #ccc;
+        width: 100%;
+        text-align: center;
+        font-size: 22px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+    }
+    .tab-wrapper .tab.selected{
+        font-weight: bold;
+        border-bottom: 1px solid #111;
+        background-color: #ccc;
+    }
+    #summary table{
+        width: 100%;
+       text-align: center;
+    }
+</style>
+</head>
+<body>
+<div class="tab-wrapper">
+    <div class="tab calculator selected" onclick="showCalculator()">Calculator</div>
+    <div class="tab summary" onclick="showSummary()">Summary</div>
+</div>
+<div style="height: 100vh;" id="calculator">
+    <div style="display: flex; flex-direction: row;justify-content: space-between;">
+<h3 id="sum"></h3><button style="margin-bottom: 16px;" onclick="clearData();">Clear</button>
+</div>
+<textarea style="width:calc(100% - 16px); margin:auto; height: 100%; font-size: large;" rows="10" id="note" onkeyup="runCalculation()"></textarea>
+</div>
+<div style="height: 100vh;" id="summary">
+<table id="summary-table">
+    
+</table>
+</div>
+<script>
+function hideAll(){
+    document.querySelector("#calculator").style.display = "none";
+    document.querySelector("#summary").style.display = "none";
+    document.querySelector(".tab-wrapper > .tab.calculator").classList.remove("selected");
+    document.querySelector(".tab-wrapper > .tab.summary").classList.remove("selected");
+}
+function showCalculator(){
+    hideAll();
+    document.querySelector(".tab-wrapper > .tab.calculator").classList.add("selected");
+    document.querySelector("#calculator").style.display = "block";
+    runCalculation();
+}
+function showSummary(){
+    hideAll();
+    document.querySelector(".tab-wrapper > .tab.summary").classList.add("selected");
+    document.querySelector("#summary").style.display = "block";
+    runSummary();
+}
+function init(){
+    const textFromLs = localStorage.getItem("calculator");
+    if(textFromLs){
+        document.querySelector("#note").value = textFromLs;
+        showCalculator();
+    }
+}
+let items = [];
+init();
+function runSummary(){
+    let tableHtml = "<tr><th>Name</th><th>Cost</th></tr>";
+    let sum = 0;
+    items.forEach(item => {
+        tableHtml += `<tr><td>${item.name}</td><td>${item.cost}</td></tr>`
+        sum += item.cost;
+    })
+    tableHtml += `<tr><th>Total</th><th>${sum}</th></tr>`;
+    document.querySelector("#summary-table").innerHTML = tableHtml;
+}
+function clearData(){
+    document.querySelector("#note").value = "";
+    localStorage.setItem("calculator", "");
+    runCalculation();
+}
+function runCalculation(){
+    const text = document.querySelector("#note").value;
+    const properties = parseText(text);
+    document.querySelector("#sum").innerHTML = properties.sum;
+    console.log(JSON.stringify(properties.items, null ,2));
+    localStorage.setItem("calculator", text);
+}
+function parseText(text){
+    items = [];
+    const lines = text.split("\n");
+    let sum = 0;
+    lines.forEach(line => {
+        if(!(line[0] == "-")){
+            const item = {
+                name: '',
+                cost: ''
+            }
+            const words = line.split(" ");
+            words.forEach(word => {
+                const localSum = isExpression(word);
+                if(localSum == 0){
+                    item.name += word;
+                }else{
+                    item.cost = localSum;
+                }
+                sum += localSum;
+            })
+            items.push(item);
+        }
+    });
+    items.sort((item1, item2)=>item2.cost - item1.cost);
+    return {
+        sum: sum,
+        items: items
+    };
+}
+
+function isExpression(word){
+    const no = word.split("x");
+    let isExpression = true;
+    let mul = 0;
+    no.forEach(n => {
+        if(isNumber(n) && isExpression){
+            isExpression = true; 
+            mul = (mul == 0 ? 1:mul) * window.parseFloat(n);
+        }else{
+            mul = 0;
+            isExpression = false;
+        }
+    })
+    return mul;
+}
+
+function isNumber(word){
+    let isNumber = false;
+    for(i in word){
+        if(['0','1','2','3','4','5','6','7','8','9','.'].includes(word[i])){
+            isNumber = true;
+        }else{
+            isNumber = false;
+            break;
+        }
+    }
+    return isNumber;
+}
+</script>
+</body>
+</html>
